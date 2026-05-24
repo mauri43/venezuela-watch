@@ -1,9 +1,8 @@
-"""Search Google Flights for DC→Caracas availability via fast-flights."""
+"""Search Google Flights for one-way DC→Caracas availability via fast-flights."""
 
 import random
 import time
 from dataclasses import dataclass, field
-from datetime import timedelta
 
 from fast_flights import FlightQuery, Passengers, create_query, get_flights
 
@@ -16,7 +15,6 @@ from config import (
     PREFERRED_HUB,
     REQUEST_DELAY_MAX,
     REQUEST_DELAY_MIN,
-    RETURN_DATES,
 )
 
 
@@ -33,7 +31,6 @@ class Finding:
     dest_code: str
     dest_name: str
     depart: str
-    ret: str
     price: int
     airline: str
     stops: int
@@ -42,10 +39,10 @@ class Finding:
     is_aa_via_mia: bool = False
 
 
-def google_flights_url(origin: str, dest: str, depart: str, ret: str) -> str:
+def google_flights_url(origin: str, dest: str, depart: str) -> str:
     return (
         "https://www.google.com/travel/flights?"
-        f"q=Flights+from+{origin}+to+{dest}+on+{depart}+returning+{ret}"
+        f"q=Flights+from+{origin}+to+{dest}+on+{depart}+oneway"
     )
 
 
@@ -61,23 +58,18 @@ def _legs_from(flight) -> list[Leg]:
 
 
 def _is_aa_via_mia(legs: list[Leg], airline_str: str) -> bool:
-    """True if itinerary is operated by American AND routes through MIA."""
     if PREFERRED_AIRLINE.lower() not in airline_str.lower():
         return False
-    # Outbound leg(s) only — first leg should land at MIA, second should be MIA→CCS
     if len(legs) < 2:
         return False
     return legs[0].to_code == PREFERRED_HUB and legs[1].from_code == PREFERRED_HUB
 
 
-def search_pair(origin: str, dest: str, depart: str, ret: str) -> Finding | None:
+def search_pair(origin: str, dest: str, depart: str) -> Finding | None:
     try:
         query = create_query(
-            flights=[
-                FlightQuery(date=depart, from_airport=origin, to_airport=dest),
-                FlightQuery(date=ret, from_airport=dest, to_airport=origin),
-            ],
-            trip="round-trip",
+            flights=[FlightQuery(date=depart, from_airport=origin, to_airport=dest)],
+            trip="one-way",
             seat="economy",
             passengers=Passengers(adults=1),
             currency="USD",
@@ -99,17 +91,15 @@ def search_pair(origin: str, dest: str, depart: str, ret: str) -> Finding | None
         if stops > MAX_STOPS:
             continue
         airline_str = ", ".join(f.airlines) if f.airlines else "?"
-        # Prefer the AA-via-MIA itinerary even if slightly pricier, otherwise lowest price.
         candidate = Finding(
             origin=origin,
             dest_code=dest,
             dest_name="",
             depart=depart,
-            ret=ret,
             price=int(f.price),
             airline=airline_str,
             stops=stops,
-            flights_url=google_flights_url(origin, dest, depart, ret),
+            flights_url=google_flights_url(origin, dest, depart),
             legs=legs,
             is_aa_via_mia=_is_aa_via_mia(legs, airline_str),
         )
@@ -130,26 +120,22 @@ def scan_all() -> list[Finding]:
     for dest_code, dest_name in DESTINATIONS:
         for origin in ORIGINS:
             for d in OUTBOUND_DATES:
-                for r in RETURN_DATES:
-                    if r <= d:  # return must be after departure
-                        continue
-                    total += 1
-                    depart = d.strftime("%Y-%m-%d")
-                    ret = r.strftime("%Y-%m-%d")
-                    print(f"  {origin}->{dest_code} {depart}→{ret}...", end=" ", flush=True)
+                total += 1
+                depart = d.strftime("%Y-%m-%d")
+                print(f"  {origin}->{dest_code} {depart} (oneway)...", end=" ", flush=True)
 
-                    result = search_pair(origin, dest_code, depart, ret)
-                    if result is None:
-                        print("no flights")
-                    else:
-                        result.dest_name = dest_name
-                        stops_str = "nonstop" if result.stops == 0 else f"{result.stops} stop"
-                        aa_tag = " 🦅 AA-via-MIA" if result.is_aa_via_mia else ""
-                        print(f"${result.price} ({result.airline}, {stops_str}){aa_tag} ✈")
-                        findings.append(result)
-                        hits += 1
+                result = search_pair(origin, dest_code, depart)
+                if result is None:
+                    print("no flights")
+                else:
+                    result.dest_name = dest_name
+                    stops_str = "nonstop" if result.stops == 0 else f"{result.stops} stop"
+                    aa_tag = " 🦅 AA-via-MIA" if result.is_aa_via_mia else ""
+                    print(f"${result.price} ({result.airline}, {stops_str}){aa_tag} ✈")
+                    findings.append(result)
+                    hits += 1
 
-                    time.sleep(random.uniform(REQUEST_DELAY_MIN, REQUEST_DELAY_MAX))
+                time.sleep(random.uniform(REQUEST_DELAY_MIN, REQUEST_DELAY_MAX))
 
     print(f"\n=== Scan done: {total} queries, {hits} with availability ===")
     return findings

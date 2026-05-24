@@ -13,7 +13,7 @@ STATE_FILE = os.path.join(os.path.dirname(__file__), "state.json")
 
 def _key(f: Finding) -> str:
     aa_tag = "AA" if f.is_aa_via_mia else "ANY"
-    return f"{f.origin}|{f.dest_code}|{f.depart}|{f.ret}|{aa_tag}"
+    return f"{f.origin}|{f.dest_code}|{f.depart}|{aa_tag}"
 
 
 def load_state() -> dict:

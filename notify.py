@@ -24,7 +24,7 @@ def _embed(f: Finding) -> dict:
         "url": f.flights_url,
         "color": color,
         "fields": [
-            {"name": "📅 Depart → Return", "value": f"{f.depart} → {f.ret}", "inline": True},
+            {"name": "📅 Depart (one-way)", "value": f.depart, "inline": True},
             {"name": "💵 Lowest seen", "value": f"${f.price}", "inline": True},
             {"name": "✈️ Airline", "value": f.airline or "?", "inline": True},
             {"name": "🛬 Stops", "value": stops, "inline": True},

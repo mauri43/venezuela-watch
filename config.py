@@ -10,15 +10,9 @@ DESTINATIONS = [
     ("CCS", "Caracas (Maiquetía)"),
 ]
 
-# Outbound: every day from Dec 10 through Dec 25, 2026 (inclusive).
+# Outbound: every day from Dec 10 through Dec 25, 2026 (inclusive). One-way only.
 _OUTBOUND_START = date(2026, 12, 10)
 _OUTBOUND_END = date(2026, 12, 25)
-
-# Returns: dates strictly AFTER Jan 5, 2027.
-RETURN_DATES = [
-    date(2027, 1, 10),
-    date(2027, 1, 24),
-]
 
 
 def _date_range(start: date, end: date) -> list[date]:
