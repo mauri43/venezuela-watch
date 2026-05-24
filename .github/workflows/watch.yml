@@ -1,0 +1,37 @@
+name: Venezuela flight release watch
+
+on:
+  schedule:
+    # Every hour — adjust if you blow through Actions minutes
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install --pre -r requirements.txt
+
+      - name: Run watcher
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: python main.py
+
+      - name: Commit state
+        run: |
+          git config user.name "venezuela-watch-bot"
+          git config user.email "bot@venezuela-watch"
+          git add state.json || true
+          git diff --staged --quiet || git commit -m "chore: update watcher state [skip ci]"
+          git push || true
