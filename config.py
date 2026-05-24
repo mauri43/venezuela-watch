@@ -2,17 +2,17 @@
 
 from datetime import date, timedelta
 
-# DC-area origins
-ORIGINS = ["IAD", "DCA", "BWI"]
+# DC-area origins (BWI dropped — basically no international service)
+ORIGINS = ["IAD", "DCA"]
 
 # Caracas only
 DESTINATIONS = [
     ("CCS", "Caracas (Maiquetía)"),
 ]
 
-# Outbound: every day strictly AFTER Dec 10, 2026 through end of December.
-_OUTBOUND_START = date(2026, 12, 11)
-_OUTBOUND_END = date(2026, 12, 31)
+# Outbound: every day from Dec 10 through Dec 25, 2026 (inclusive).
+_OUTBOUND_START = date(2026, 12, 10)
+_OUTBOUND_END = date(2026, 12, 25)
 
 # Returns: dates strictly AFTER Jan 5, 2027.
 RETURN_DATES = [
